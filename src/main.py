@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from src.config import Config
 
 format = "%(levelname)s:%(funcName)s:%(message)s"
-# logging.basicConfig(level=Config.LOG_LEVEL, format=format)
+logging.basicConfig(level=Config.LOG_LEVEL, format=format)
 
 
 def create_app():
@@ -16,8 +16,6 @@ def create_app():
         title=Config.PROJECT_NAME,
         description=Config.PROJECT_DESCRIPTION,
         contact={"email": Config.CONTACT_EMAIL},
-        # termsOfService=Config.TERMS_OF_SERVICE,
-        # host=Config.SERVER_HOST,
     )
 
     async def catch_exceptions_middleware(request: Request, call_next):
@@ -38,14 +36,14 @@ def create_app():
     app.middleware("http")(catch_exceptions_middleware)
 
     # add CORS
-    # if Config.BACKEND_CORS_ORIGINS:
-    #     app.add_middleware(
-    #         CORSMiddleware,
-    #         allow_origins=[str(origin) for origin in Config.BACKEND_CORS_ORIGINS],
-    #         allow_credentials=True,
-    #         allow_methods=["*"],
-    #         allow_headers=["*"],
-    #     )
+    if Config.BACKEND_CORS_ORIGINS:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=[str(origin) for origin in Config.BACKEND_CORS_ORIGINS],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
     # Include API handler router
     from src.api_handler import api_router

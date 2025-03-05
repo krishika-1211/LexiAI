@@ -8,6 +8,8 @@ from utils.db.base import ModelBase
 
 # Importing below modules will make their metadata include in the ModelBase class
 from src.user.models import *
+from src.category.models import *
+from src.conversation.models import *
 
 
 # this is the Alembic Config object, which provides

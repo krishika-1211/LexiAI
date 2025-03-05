@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 from dotenv import load_dotenv
 from pydantic import AnyHttpUrl, PostgresDsn
@@ -11,7 +11,7 @@ load_dotenv(os.getenv("ENV_FILE", ".env"))
 class Config:
     # Basic project configs
     BASE_DIR = str(Path(os.path.dirname(__file__)).parent)
-    PROJECT_NAME: str = "FastAPI Project"
+    PROJECT_NAME: str = "LexiAI"
     CONTACT_EMAIL: str = os.environ["CONTACT_EMAIL"]
     PROJECT_DESCRIPTION: str = f"""
         {PROJECT_NAME} API document.
@@ -19,21 +19,18 @@ class Config:
     """
 
     # Server configs
-    # LOG_LEVEL: str = os.environ["LOG_LEVEL"]
-    # DEPLOYMENT_ENV: str = os.environ["DEPLOYMENT_ENV"]
-    # SERVER_PORT: Optional[int] = os.environ["SERVER_PORT"]
-    # SERVER_HOST: Optional[str or AnyHttpUrl] = os.environ["SERVER_HOST"]
-    # TERMS_OF_SERVICE: str = os.environ["TERMS_OF_SERVICE"]
+    LOG_LEVEL: str = os.environ["LOG_LEVEL"]
+    DEPLOYMENT_ENV: str = os.environ["DEPLOYMENT_ENV"]
 
-    # if DEPLOYMENT_ENV == "DEV":
-    #     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = [
-    #         "http://localhost.tiangolo.com",
-    #         "https://localhost.tiangolo.com",
-    #         "http://localhost:3000",
-    #         "http://localhost:8080",
-    #     ]
-    # else:
-    #     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
+    if DEPLOYMENT_ENV == "DEV":
+        BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = [
+            "http://localhost:3000",
+            "http://localhost:8080",
+            "https://accounts.google.com",
+            "http://www.googleapis.com",
+        ]
+    else:
+        BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
 
     @staticmethod
     def assemble_db_connection():
@@ -67,6 +64,8 @@ class Config:
     ]
     GOOGLE_CLIENT_SECRET: str = os.environ["GOOGLE_CLIENT_SECRET"]
     GOOGLE_AUTH_REDIRECT_URI: str = os.environ["GOOGLE_AUTH_REDIRECT_URI"]
-    # if DEPLOYMENT_ENV == "DEV":
-    #     # to allow http traffic for local development
-    #     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+    if DEPLOYMENT_ENV == "DEV":
+        # to allow http traffic for local development
+        os.environ[
+            "OAUTHLIB_INSECURE_TRANSPORT"
+        ] = "1"  # allows http google auth (https)

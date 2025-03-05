@@ -14,6 +14,7 @@ from utils.db.session import get_db
 
 def _authenticated(authorization: str = Header(None, alias="Authorization")):
     try:
+        authorization = authorization.strip().replace("Bearer ", "")
         jwt.decode(
             authorization, Config.JWT_SECRET_KEY, algorithms=[Config.JWT_ALGORITHM]
         )

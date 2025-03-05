@@ -47,5 +47,5 @@ repos:
         types: [python]
         language: system
         args:
-            - "--max-line-length=100"
+            - "--max-line-length=150"
             - "--extend-ignore=E402,E731"

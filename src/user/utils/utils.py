@@ -13,9 +13,7 @@ def generate_random_password(length=12):
     return "".join(random.choice(chars) for _ in range(length))
 
 
-def get_sso_user(
-    db: Session, email: str, given_name: str
-):
+def get_sso_user(db: Session, email: str):
     # check if user already exists
     email = email.lower()
     user = user_crud.get_by_email(db, email)
@@ -30,7 +28,6 @@ def get_sso_user(
             id=user_id,
             email=email,
             password=generate_random_password(),
-            username=given_name,
             email_verified=True,
             created_by=user_id,
             updated_by=user_id,

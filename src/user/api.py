@@ -1,20 +1,11 @@
 import logging
 import uuid
-from typing import List
 
 from fastapi import APIRouter, HTTPException, status
 
 from src.user.crud import user_crud
-from src.user.models import UserRoles
-from src.user.schemas import (
-    LoginRequest,
-    Token,
-    UserBase,
-    UserRequest,
-    UserResponse,
-    UserUpdate,
-)
-from src.user.utils.deps import auth_provider, authenticated_user, is_authorized_for
+from src.user.schemas import LoginRequest, Token, UserBase, UserRequest
+from src.user.utils.deps import auth_provider
 from src.user.utils.utils import get_sso_user
 from utils.db.session import get_db
 
@@ -61,38 +52,6 @@ def auth(provider: auth_provider):
 )
 def auth_callback(code: str, provider: auth_provider, db: get_db):
     access_token = provider.get_access_token(code)
-    email,given_name  = provider.get_user_info(access_token)
-    user = get_sso_user(db, email, given_name)
+    email = provider.get_user_info(access_token)
+    user = get_sso_user(db, email)
     return Token(user=user, token=user.create_token())
-
-
-# @user_router.get("/me", response_model=UserResponse, status_code=status.HTTP_200_OK)
-# def me(user_db: authenticated_user):
-#     user, _ = user_db
-#     return user
-
-
-# @user_router.get(
-#     "/users", response_model=List[UserResponse], status_code=status.HTTP_200_OK
-# )
-# def get_users(
-#     user_db: is_authorized_for([UserRoles.ADMIN.value, UserRoles.SUPER_ADMIN.value])
-# ):
-#     _, db = user_db
-
-#     return user_crud.get_multi(db)
-
-
-# @user_router.patch(
-#     "/user", response_model=UserResponse, status_code=status.HTTP_201_CREATED
-# )
-# def update_user(user_req: UserUpdate, user_db: authenticated_user):
-#     user, db = user_db
-#     return user_crud.update(db, db_obj=user, obj_in=user_req)
-
-
-# @user_router.delete("/user", status_code=status.HTTP_204_NO_CONTENT)
-# def delete_user(user_db: authenticated_user):
-#     user, db = user_db
-#     user_crud.soft_del(db, db_obj=user)
-#     return None

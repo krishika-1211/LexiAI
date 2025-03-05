@@ -1,19 +1,21 @@
-"""Upgrade existing table
+"""updated tables
 
-Revision ID: e146008e9095
-Revises: 8f96f75b1ca0
-Create Date: 2025-02-07 11:22:30.884918
+Revision ID: 064e2a8a4470
+Revises: 58640a838c60
+Create Date: 2025-03-04 15:14:47.876839
 
 """
+from typing import Sequence, Union
+
 from alembic import op
 import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'e146008e9095'
-down_revision = '8f96f75b1ca0'
-branch_labels = None
-depends_on = None
+revision: str = '064e2a8a4470'
+down_revision: Union[str, None] = '58640a838c60'
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
