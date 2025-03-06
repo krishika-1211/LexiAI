@@ -1,6 +1,7 @@
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, status
+from sqlalchemy.exc import NoResultFound
 
 from src.category.crud import category_crud, topic_crud
 from src.category.schemas import (
@@ -53,10 +54,17 @@ def add_topic(
 @category_router.get(
     "/topic", response_model=List[TopicResponse], status_code=status.HTTP_200_OK
 )
-def get_topic(db: get_db, authenticated: is_authorized):
+def get_topic(
+    db: get_db, authenticated: is_authorized, category_name: Optional[str] = None
+):
     if not authenticated:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
         )
-    topics = topic_crud.get_multi(db=db)
-    return topics
+
+    try:
+        topics = topic_crud.read(db, category_name)
+        return topics
+
+    except NoResultFound as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

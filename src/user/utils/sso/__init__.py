@@ -12,6 +12,6 @@ class BaseSSO(ABC):
         pass
 
     @abstractmethod
-    def get_user_info(self, access_token: str) -> Tuple[str]:
-        # returns email
+    def get_user_info(self, access_token: str) -> Tuple[str, str, str]:
+        # returns email, first_name, last_name
         pass

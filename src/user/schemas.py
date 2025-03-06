@@ -7,15 +7,15 @@ from utils.schemas.base import BaseSchema
 
 
 class UserUpdate(BaseModel):
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
+    firstname: Optional[str] = None
+    lastname: Optional[str] = None
     email: Optional[EmailStr] = None
 
 
 class UserRequest(UserUpdate):
-    first_name: str
-    last_name: str
-    email: EmailStr
+    firstname: str
+    lastname: str
+    email: EmailStr | None
     password: str
 
 
@@ -44,3 +44,12 @@ class LoginRequest(BaseModel):
 class Token(BaseModel):
     user: UserResponse
     token: str
+
+
+class ForgotRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetRequest(BaseModel):
+    token: str
+    new_password: str

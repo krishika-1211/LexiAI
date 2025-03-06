@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
@@ -46,6 +48,15 @@ class TopicCRUD(CRUDBase[Topic, TopicRequest, TopicResponse]):
         db.commit()
         db.refresh(db_obj)
         return db_obj
+
+    def read(self, db: Session, category_name: Optional[str] = None) -> List[Topic]:
+        if category_name:
+            category = db.query(Category).filter(Category.name == category_name).first()
+            if not category:
+                raise NoResultFound(f"Category '{category_name}' not found")
+            return db.query(Topic).filter(Topic.category_id == category.id).all()
+
+        return db.query(Topic).all()
 
 
 topic_crud = TopicCRUD(Topic)

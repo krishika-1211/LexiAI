@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from dotenv import load_dotenv
 from pydantic import AnyHttpUrl, PostgresDsn
@@ -11,7 +11,7 @@ load_dotenv(os.getenv("ENV_FILE", ".env"))
 class Config:
     # Basic project configs
     BASE_DIR = str(Path(os.path.dirname(__file__)).parent)
-    PROJECT_NAME: str = "LexiAI"
+    PROJECT_NAME: str = "LexiAI Project"
     CONTACT_EMAIL: str = os.environ["CONTACT_EMAIL"]
     PROJECT_DESCRIPTION: str = f"""
         {PROJECT_NAME} API document.
@@ -21,13 +21,14 @@ class Config:
     # Server configs
     LOG_LEVEL: str = os.environ["LOG_LEVEL"]
     DEPLOYMENT_ENV: str = os.environ["DEPLOYMENT_ENV"]
+    SERVER_PORT: Optional[int] = os.environ["SERVER_PORT"]
+    SERVER_HOST: Optional[str or AnyHttpUrl] = os.environ["SERVER_HOST"]
+    # TERMS_OF_SERVICE: str = os.environ["TERMS_OF_SERVICE"]
 
     if DEPLOYMENT_ENV == "DEV":
         BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = [
             "http://localhost:3000",
             "http://localhost:8080",
-            "https://accounts.google.com",
-            "http://www.googleapis.com",
         ]
     else:
         BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
@@ -66,6 +67,11 @@ class Config:
     GOOGLE_AUTH_REDIRECT_URI: str = os.environ["GOOGLE_AUTH_REDIRECT_URI"]
     if DEPLOYMENT_ENV == "DEV":
         # to allow http traffic for local development
-        os.environ[
-            "OAUTHLIB_INSECURE_TRANSPORT"
-        ] = "1"  # allows http google auth (https)
+        os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+
+    # SMTP Config
+    SMTP_SERVER: str = os.environ["SMTP_SERVER"]
+    SMTP_PORT: str = os.environ["SMTP_PORT"]
+    SMTP_USER: str = os.environ["SMTP_USER"]
+    SMTP_PASS: str = os.environ["SMTP_PASS"]
+    FROM_MAIL: str = os.environ["FROM_MAIL"]

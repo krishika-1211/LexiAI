@@ -85,3 +85,18 @@ def get_auth_provider(provider: AuthProvider) -> BaseSSO:
 
 
 auth_provider = Annotated[BaseSSO, Depends(get_auth_provider)]
+
+
+def verify_reset_token(token):
+    try:
+        payload = jwt.decode(
+            token, key=Config.JWT_SECRET_KEY, algorithms=[Config.JWT_ALGORITHM]
+        )
+        email = payload.get("email")
+        if email is None:
+            return None
+        return email
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.JWTError:
+        return None

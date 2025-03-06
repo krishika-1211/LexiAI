@@ -1,10 +1,8 @@
 from typing import Tuple
 
-from google.oauth2.credentials import Credentials  # handles Oauth2 cred.
-from google_auth_oauthlib.flow import Flow  # handles Oauth2 flow
-from googleapiclient.discovery import (  # interact with google api to fetch user data
-    build,
-)
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import Flow
+from googleapiclient.discovery import build
 
 from src.config import Config
 from src.user.utils.sso import BaseSSO
@@ -25,7 +23,6 @@ class GoogleSSO(BaseSSO):
             "auth_provider_x509_cert_url": Config.GOOGLE_AUTH_PROVIDER_X509_CERT_URL,
             "client_secret": Config.GOOGLE_CLIENT_SECRET,
         }
-
         self.flow = Flow.from_client_config(
             client_config={"web": self.credentials},
             scopes=self.scopes,
@@ -40,7 +37,13 @@ class GoogleSSO(BaseSSO):
         self.flow.fetch_token(code=code)
         return self.flow.credentials
 
-    def get_user_info(self, credentials: Credentials) -> Tuple[str]:
-        service = build("oauth2", "v2", credentials=credentials)
+    def get_user_info(self, credentials: Credentials) -> Tuple[str, str, str]:
+        service = build(
+            "oauth2", "v2", credentials=credentials
+        )  # creates a google OAuth2 API client service
         user_info = service.userinfo().get().execute()
-        return user_info["email"]
+        return (
+            user_info["email"],
+            user_info["given_name"],
+            user_info["family_name"],
+        )

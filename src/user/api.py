@@ -4,9 +4,16 @@ import uuid
 from fastapi import APIRouter, HTTPException, status
 
 from src.user.crud import user_crud
-from src.user.schemas import LoginRequest, Token, UserBase, UserRequest
-from src.user.utils.deps import auth_provider
-from src.user.utils.utils import get_sso_user
+from src.user.schemas import (
+    ForgotRequest,
+    LoginRequest,
+    ResetRequest,
+    Token,
+    UserBase,
+    UserRequest,
+)
+from src.user.utils.deps import auth_provider, verify_reset_token
+from src.user.utils.utils import get_sso_user, send_reset_email
 from utils.db.session import get_db
 
 logger = logging.getLogger(__name__)
@@ -38,7 +45,6 @@ def login(login_creds: LoginRequest, db: get_db):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
         )
-
     return Token(user=user, token=user.create_token())
 
 
@@ -52,6 +58,41 @@ def auth(provider: auth_provider):
 )
 def auth_callback(code: str, provider: auth_provider, db: get_db):
     access_token = provider.get_access_token(code)
-    email = provider.get_user_info(access_token)
-    user = get_sso_user(db, email)
+    (
+        email,
+        firstname,
+        lastname,
+    ) = provider.get_user_info(access_token)
+    user = get_sso_user(db, email, firstname, lastname)
     return Token(user=user, token=user.create_token())
+
+
+@user_router.post("/forgate-password")
+def forgot_password(request: ForgotRequest, db: get_db):
+    user = user_crud.get_by_email(db, request.email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Email not found"
+        )
+
+    token = user.create_token()
+
+    send_reset_email(request.email, token)
+
+    return {"message": "Password reset link sent to your email"}
+
+
+@user_router.post("/reset-password", status_code=status.HTTP_200_OK)
+def reset_password(request: ResetRequest, db: get_db):
+    email = verify_reset_token(request.token)
+    if not email:
+        raise HTTPException(status_code=400, detail="Invalid or expired token")
+
+    user = user_crud.get_by_email(db, email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.set_password(request.new_password)
+    db.commit()
+
+    return {"message": "Password reset successfully"}
