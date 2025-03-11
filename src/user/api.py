@@ -11,8 +11,9 @@ from src.user.schemas import (
     Token,
     UserBase,
     UserRequest,
+    UserStatsResponse,
 )
-from src.user.utils.deps import auth_provider, verify_reset_token
+from src.user.utils.deps import auth_provider, authenticated_user, verify_reset_token
 from src.user.utils.utils import get_sso_user, send_reset_email
 from utils.db.session import get_db
 
@@ -96,3 +97,17 @@ def reset_password(request: ResetRequest, db: get_db):
     db.commit()
 
     return {"message": "Password reset successfully"}
+
+
+@user_router.get(
+    "/stats", response_model=UserStatsResponse, status_code=status.HTTP_200_OK
+)
+def get_user_stats(authenticated: authenticated_user):
+    user, db = authenticated
+
+    stats = user_crud.get_user_stats(db, user.id)
+
+    if stats.total_session == 0:
+        return UserStatsResponse(total_session=0, avg_score=0.0, high_score=0.0)
+
+    return stats

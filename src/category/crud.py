@@ -3,6 +3,7 @@ from typing import List, Optional
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 
 from src.category.models import Category, Topic
 from src.category.schemas import (
@@ -11,6 +12,7 @@ from src.category.schemas import (
     TopicRequest,
     TopicResponse,
 )
+from src.conversation.models import Report
 from utils.crud.base import CRUDBase
 
 
@@ -49,7 +51,9 @@ class TopicCRUD(CRUDBase[Topic, TopicRequest, TopicResponse]):
         db.refresh(db_obj)
         return db_obj
 
-    def read(self, db: Session, category_name: Optional[str] = None) -> List[Topic]:
+    def get_by_category(
+        self, db: Session, category_name: Optional[str] = None
+    ) -> List[Topic]:
         if category_name:
             category = db.query(Category).filter(Category.name == category_name).first()
             if not category:
@@ -57,6 +61,28 @@ class TopicCRUD(CRUDBase[Topic, TopicRequest, TopicResponse]):
             return db.query(Topic).filter(Topic.category_id == category.id).all()
 
         return db.query(Topic).all()
+
+    def get_high_score(self, db: Session, topic_name: str) -> Optional[float]:
+        topic = db.query(Topic).filter(Topic.name == topic_name).first()
+        if not topic:
+            raise NoResultFound(f"Topic '{topic_name}' not found")
+
+        high_score = (
+            db.query(func.max(Report.score))
+            .filter(Report.topic_id == topic.id)
+            .scalar()
+        )
+        return high_score
+
+    def get_user_score(
+        self, db: Session, user_id: str, topic_id: str
+    ) -> Optional[float]:
+        user_score = (
+            db.query(func.max(Report.score))
+            .filter(Report.topic_id == topic_id, Report.user_id == user_id)
+            .scalar()
+        )
+        return user_score
 
 
 topic_crud = TopicCRUD(Topic)

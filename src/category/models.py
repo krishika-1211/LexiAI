@@ -8,6 +8,7 @@ from utils.db.base import ModelBase
 class Topic(ModelBase):
     name = Column(String, unique=True, nullable=False)
     description = Column(String, nullable=False)
+
     category_id = Column(String, ForeignKey("category.id", ondelete="CASCADE"))
 
     category = relationship("Category", back_populates="topic")
@@ -16,6 +17,7 @@ class Topic(ModelBase):
         back_populates="topic",
         cascade="all, delete",
     )
+    report = relationship("src.conversation.models.Report", back_populates="topic")
 
 
 class Category(ModelBase):
