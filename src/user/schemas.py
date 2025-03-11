@@ -53,3 +53,9 @@ class ForgotRequest(BaseModel):
 class ResetRequest(BaseModel):
     token: str
     new_password: str
+
+
+class UserStatsResponse(BaseModel):
+    total_session: int
+    avg_score: float
+    high_score: float

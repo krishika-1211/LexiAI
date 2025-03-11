@@ -1,7 +1,8 @@
 from pydantic import BaseModel
 
 
-class UserStatsResponse(BaseModel):
-    total_session: int
-    avg_score: float
-    high_score: float
+class HistoryResponse(BaseModel):
+    id: str
+    topic: str
+    mins: str
+    score: float

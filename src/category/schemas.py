@@ -24,3 +24,5 @@ class TopicResponse(BaseSchema):
     name: str
     description: str
     category_id: str
+    high_score: Optional[float] = 0
+    your_score: Optional[float] = 0

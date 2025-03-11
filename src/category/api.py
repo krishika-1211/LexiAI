@@ -11,7 +11,7 @@ from src.category.schemas import (
     TopicResponse,
 )
 from src.user.models import UserRoles
-from src.user.utils.deps import is_authorized, is_authorized_for
+from src.user.utils.deps import authenticated_user, is_authorized, is_authorized_for
 from utils.db.session import get_db
 
 category_router = APIRouter()
@@ -54,17 +54,31 @@ def add_topic(
 @category_router.get(
     "/topic", response_model=List[TopicResponse], status_code=status.HTTP_200_OK
 )
-def get_topic(
-    db: get_db, authenticated: is_authorized, category_name: Optional[str] = None
-):
-    if not authenticated:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
-        )
+def get_topic(authenticated: authenticated_user, category_name: Optional[str] = None):
+    user, db = authenticated
 
     try:
-        topics = topic_crud.read(db, category_name)
-        return topics
+        topics = topic_crud.get_by_category(db, category_name)
+
+        topic_responses = []
+        for topic in topics:
+            high_score = topic_crud.get_high_score(db, topic.name)
+            your_score = topic_crud.get_user_score(db, user.id, topic.id)
+
+            topic_responses.append(
+                TopicResponse(
+                    id=topic.id,
+                    name=topic.name,
+                    description=topic.description,
+                    category_id=topic.category_id,
+                    high_score=high_score,
+                    your_score=your_score,
+                    created_by=topic.created_by,
+                    updated_by=topic.updated_by,
+                )
+            )
+
+        return topic_responses
 
     except NoResultFound as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

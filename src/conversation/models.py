@@ -14,7 +14,6 @@ class ConversationSession(ModelBase):
 
     user = relationship("src.user.models.User", back_populates="session")
     topic = relationship(Topic, back_populates="session")
-
     report = relationship("Report", back_populates="session", cascade="all, delete")
     conversation = relationship(
         "Conversation", back_populates="session", cascade="all, delete"
@@ -37,8 +36,11 @@ class Report(ModelBase):
     feedback = Column(String)
     words_spoken = Column(Integer, default=0)
 
+    user_id = Column(String, ForeignKey("user.id", ondelete="CASCADE"))
+    topic_id = Column(String, ForeignKey("topic.id"))
     session_id = Column(
         String, ForeignKey("conversation_session.id", ondelete="CASCADE")
     )
 
+    topic = relationship(Topic, back_populates="report")
     session = relationship("ConversationSession", back_populates="report")
