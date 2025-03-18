@@ -3,6 +3,7 @@ import uuid
 
 from fastapi import APIRouter, HTTPException, status
 
+from src.billing.crud import stripe_service
 from src.user.crud import user_crud
 from src.user.schemas import (
     ForgotRequest,
@@ -30,10 +31,15 @@ def signup(user_req: UserRequest, db: get_db):
             detail="User with this email already exists",
         )
     user_id = str(uuid.uuid4())
+    customer = stripe_service.create_customer(user_req.email)
     user = user_crud.create(
         db,
         obj_in=UserBase(
-            id=user_id, created_by=user_id, updated_by=user_id, **user_req.model_dump()
+            id=user_id,
+            customer_id=customer.id,
+            created_by=user_id,
+            updated_by=user_id,
+            **user_req.model_dump()
         ),
     )
     return Token(user=user, token=user.create_token())
