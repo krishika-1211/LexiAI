@@ -30,7 +30,10 @@ class GoogleSSO(BaseSSO):
         )
 
     def get_authorization_url(self) -> str:
-        auth_url, state = self.flow.authorization_url()
+        auth_url, state = self.flow.authorization_url(
+            access_type="offline",
+            prompt="consent",
+        )
         return auth_url
 
     def get_access_token(self, code) -> str:

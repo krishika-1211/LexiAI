@@ -4,5 +4,5 @@ from pydantic import BaseModel
 class HistoryResponse(BaseModel):
     id: str
     topic: str
-    mins: str
+    mins: float
     score: float
