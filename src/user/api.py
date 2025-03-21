@@ -2,6 +2,8 @@ import logging
 import uuid
 
 from fastapi import APIRouter, HTTPException, status
+from fastapi.requests import Request
+from fastapi.responses import RedirectResponse
 
 from src.user.crud import user_crud
 from src.user.schemas import (
@@ -54,18 +56,18 @@ def auth(provider: auth_provider):
     return {"auth_url": provider.get_authorization_url()}
 
 
-@user_router.get(
-    "/auth/{provider}/callback", status_code=status.HTTP_200_OK, response_model=Token
-)
-def auth_callback(code: str, provider: auth_provider, db: get_db):
+@user_router.get("/auth/{provider}/callback", status_code=status.HTTP_200_OK)
+def auth_callback(provider: auth_provider, code: str, db: get_db, request: Request):
+    redirect_url = request.query_params.get(
+        "redirect_url", "http://localhost:3000/auth/callback"
+    )
     access_token = provider.get_access_token(code)
-    (
-        email,
-        firstname,
-        lastname,
-    ) = provider.get_user_info(access_token)
+    email, firstname, lastname = provider.get_user_info(access_token)
     user = get_sso_user(db, email, firstname, lastname)
-    return Token(user=user, token=user.create_token())
+    token = user.create_token()
+
+    redirect_url_with_token = f"{redirect_url}?token={token}"
+    return RedirectResponse(url=redirect_url_with_token)
 
 
 @user_router.post("/forgate-password")
