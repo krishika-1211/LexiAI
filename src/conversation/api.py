@@ -1,14 +1,40 @@
 from typing import List
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, status
 
-from src.category.models import Topic
-from src.conversation.crud import conversation_crud
-from src.conversation.models import ConversationSession, Report
+from src.conversation.crud import (
+    conversation_crud,
+    conversation_session_crud,
+    history_crud,
+)
 from src.conversation.schemas import HistoryResponse
+from src.conversation.utils import recognize_and_send
 from src.user.utils.deps import authenticated_user
 
 conversation_router = APIRouter()
+
+
+@conversation_router.websocket("/conversation")
+async def websocket_conversation(
+    authenticated: authenticated_user, websocket: WebSocket
+):
+    user, db = authenticated
+
+    await websocket.accept()
+
+    try:
+        session = conversation_session_crud.create(
+            db, user_id=user.id, created_by=user.email
+        )
+        await recognize_and_send(session.id, db, duration=60)
+
+    except WebSocketDisconnect:
+        print("WebSocket disconnected")
+    except Exception as e:
+        print(f"Error in WebSocket conversation: {e}")
+        await websocket.send_json({"error": str(e)})
+    finally:
+        db.close()
 
 
 @conversation_router.get(
@@ -18,26 +44,7 @@ def get_history(authenticated: authenticated_user):
     user, db = authenticated
 
     try:
-        sessions = (
-            db.query(ConversationSession)
-            .join(Topic, Topic.id == ConversationSession.topic_id)
-            .outerjoin(Report, Report.session_id == ConversationSession.id)
-            .filter(ConversationSession.user_id == user.id)
-            .all()
-        )
-
-        history = []
-        for session in sessions:
-            history.append(
-                HistoryResponse(
-                    id=session.id,
-                    topic=session.topic.name,
-                    mins=session.total_time,
-                    score=session.report.score,
-                )
-            )
-
-        return history
+        return history_crud.get_user_history(db, user.id)
 
     except Exception as e:
         raise HTTPException(

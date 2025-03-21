@@ -68,9 +68,11 @@ class StripeService:
                 status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found"
             )
 
+        user = db.query(User).filter(User.customer_id == customer_id).first()
+
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
-            customer=customer_id,
+            customer_email=user.email,
             line_items=[
                 {
                     "price": plan.price_id,
@@ -104,6 +106,10 @@ class StripeService:
         current_period_end = datetime.fromtimestamp(subscription.current_period_end)
 
         user = db.query(User).filter(User.customer_id == subscription.customer).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
         created_by = user.email
         plan = db.query(Plan).filter(Plan.price_id == price_id).first()
         if not plan:

@@ -1,8 +1,60 @@
+from typing import List
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from src.billing.models import Plan, Subscription
+from src.category.models import Topic
+from src.conversation.models import ConversationSession, Report
+from src.conversation.schemas import (
+    ConversationSessionRequest,
+    ConversationSessionResponse,
+    HistoryResponse,
+)
 from src.user.models import User
+from utils.crud.base import CRUDBase
+
+
+class ConversationSessionCRUD(
+    CRUDBase[
+        ConversationSession, ConversationSessionRequest, ConversationSessionResponse
+    ]
+):
+    def create(self, db: Session, user_id, created_by) -> ConversationSession:
+        db_obj = ConversationSession(
+            user_id=user_id, created_by=created_by, updated_by=created_by
+        )
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
+
+
+conversation_session_crud = ConversationSessionCRUD(ConversationSession)
+
+
+class HistoryCRUD(CRUDBase[ConversationSession, None, HistoryResponse]):
+    def get_user_history(self, db: Session, user_id: str) -> List[HistoryResponse]:
+        sessions = (
+            db.query(ConversationSession)
+            .join(Topic, Topic.id == ConversationSession.topic_id)
+            .outerjoin(Report, Report.session_id == ConversationSession.id)
+            .filter(ConversationSession.user_id == user_id)
+            .all()
+        )
+
+        return [
+            HistoryResponse(
+                id=session.id,
+                topic=session.topic.name,
+                mins=session.total_time,
+                score=session.report[0].score if session.report else None,
+            )
+            for session in sessions
+        ]
+
+
+history_crud = HistoryCRUD(ConversationSession)
 
 
 class ConversationCrud:

@@ -25,16 +25,16 @@ def checkout_session(request: SubscriptionRequest, authenticated: authenticated_
     session = stripe_service.create_checkout_session(
         db=db, obj_in=request, customer_id=user.customer_id
     )
-    return {"checkout url": session.url, "session_id": session.id}
+    return {"checkout_url": session.url, "session_id": session.id}
 
 
 @billing_router.post("/webhook", status_code=status.HTTP_200_OK)
 async def stripe_webhook(request: Request, db: get_db):
     payload = await request.body()
     sig_header = request.headers.get("Stripe-Signature")
-
     try:
         event = stripe_service.verify_webhook_signature(payload, sig_header)
+        print(event)
 
         if event["type"] == "checkout.session.completed":
             session = event["data"]["object"]
