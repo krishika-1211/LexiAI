@@ -1,40 +1,25 @@
 from typing import List
 
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, HTTPException, WebSocket, status
 
-from src.conversation.crud import (
-    conversation_crud,
-    conversation_session_crud,
-    history_crud,
-)
+from src.conversation.crud import conversation_crud, history_crud
 from src.conversation.schemas import HistoryResponse
-from src.conversation.utils import recognize_and_send
+from src.conversation.utils import websocket_conversation
 from src.user.utils.deps import authenticated_user
 
 conversation_router = APIRouter()
 
 
 @conversation_router.websocket("/conversation")
-async def websocket_conversation(
-    authenticated: authenticated_user, websocket: WebSocket
+async def conversation(
+    websocket: WebSocket,
+    authenticated: authenticated_user,
+    topic_id: str,
+    duration: int,
 ):
     user, db = authenticated
 
-    await websocket.accept()
-
-    try:
-        session = conversation_session_crud.create(
-            db, user_id=user.id, created_by=user.email
-        )
-        await recognize_and_send(session.id, db, duration=60)
-
-    except WebSocketDisconnect:
-        print("WebSocket disconnected")
-    except Exception as e:
-        print(f"Error in WebSocket conversation: {e}")
-        await websocket.send_json({"error": str(e)})
-    finally:
-        db.close()
+    await websocket_conversation(websocket, db, user, topic_id, duration)
 
 
 @conversation_router.get(

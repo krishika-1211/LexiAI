@@ -1,10 +1,14 @@
 import asyncio
-import io
-import time
+from datetime import datetime, timedelta
 
 import pyttsx3
 import requests
 import speech_recognition as sr
+from fastapi import WebSocket, WebSocketDisconnect
+from sqlalchemy.orm import Session
+
+from src.category.models import Topic
+from src.conversation.crud import conversation_crud, conversation_session_crud
 
 TOGETHER_AI_API_KEY = "tgp_v1_F454MgPM8CXXlrEQv4xSxJ66d34q7SqSRofKib2inEI"
 GROQ_KEY = "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"
@@ -15,6 +19,7 @@ engine = pyttsx3.init()
 def speak(response):
     if response:
         print("Assistant:", response)
+        print("AI:", response)
         engine.say(response)
         engine.runAndWait()
 
@@ -43,7 +48,7 @@ def get_ai_response(query):
     payload = {
         "model": "mixtral-8x7b-32768",  # Groq's recommended model for conversational AI
         "messages": [{"role": "user", "content": query}],
-        "max_tokens": 10,
+        "max_tokens": 50,
         "temperature": 0.7,
     }
 
@@ -61,46 +66,79 @@ def get_ai_response(query):
         return None
 
 
-async def recognize_and_send(session_id, db, duration: int):
+async def websocket_conversation(
+    websocket: WebSocket, db: Session, user, topic_id: str, duration: int
+):
+    await websocket.accept()
+
+    topic = db.query(Topic).filter(Topic.id == topic_id).first()
+    if not topic:
+        await websocket.send_text("Error: Invalid topic selected.")
+        await websocket.close()
+        return
+
+    session = conversation_session_crud.create(
+        db, user_id=user.id, created_by=user.email, topic_id=topic_id
+    )
+
     recognizer = sr.Recognizer()
-    end_time = time.time() + duration
+    mic = sr.Microphone()
 
-    with sr.Microphone() as source:
-        print("Listening...")
-        recognizer.adjust_for_ambient_noise(source, duration=0.5)
+    start_time = datetime.now()
+    end_time = start_time + timedelta(minutes=duration)
 
-        while time.time() < end_time:
-            try:
-                audio = await asyncio.to_thread(
-                    recognizer.listen, source, timeout=None, phrase_time_limit=3
-                )
-                audio_data = io.BytesIO(audio.get_wav_data())
+    try:
+        with mic as source:
+            recognizer.adjust_for_ambient_noise(source, duration=1)
 
-                transcription = await asyncio.to_thread(
-                    transcribe_with_groq, audio_data
-                )
-                if not transcription:
-                    return {"error": "Could not transcribe audio"}
+            ai_intro = f"Let's talk about {topic.name}. What do you think about it?"
+            speak(ai_intro)
+            await websocket.send_text(ai_intro)
 
-                print("User:", transcription)
+            await asyncio.sleep(2)
 
-                ai_response = await asyncio.to_thread(get_ai_response, transcription)
-                if not ai_response:
-                    return {"error": "AI response failed"}
+            while datetime.now() < end_time:
+                print("Listening for user input...")
+                audio = recognizer.listen(source, timeout=10)
+                audio_data = audio.get_wav_data()  # Convert audio to raw bytes
 
-                await asyncio.to_thread(speak, ai_response)
+                # Transcribe speech to text
+                transcription = transcribe_with_groq(audio_data)
+                if transcription:
+                    print("User:", transcription)
 
-                conversation_entry = {
-                    "session_id": session_id,
-                    "user_input": transcription,
-                    "ai_response": ai_response,
-                }
-                if db:
-                    db.add(conversation_entry)
-                    db.commit()
+                    # Store user conversation in DB
+                    conversation_crud.user_conversation(
+                        db, session.id, transcription, user.email
+                    )
 
-            except sr.UnknownValueError:
-                return {"error": "Sorry, I didn't understand that."}
+                    # Generate AI response
+                    ai_response = get_ai_response(transcription)
+                    if ai_response:
+                        # Store AI response in DB
+                        conversation_crud.ai_conversation(
+                            db, session.id, ai_response, user.email
+                        )
 
-            except sr.WaitTimeoutError:
-                return {"error": "Listening timed out."}
+                        speak(ai_response)
+
+                        # Send AI response back to WebSocket
+                        await websocket.send_text(ai_response)
+                    else:
+                        await websocket.send_text(
+                            "Error: AI could not generate a response."
+                        )
+                else:
+                    await websocket.send_text("Error: Could not transcribe audio.")
+
+        await websocket.send_text("Conversation time is up. Disconnecting...")
+        await websocket.close()
+
+    except WebSocketDisconnect:
+        print(f"User {user.email} disconnected")
+
+    finally:
+        total_time = (datetime.now() - start_time).total_seconds() / 60
+        session.total_time = round(total_time, 2)
+
+        db.commit()
