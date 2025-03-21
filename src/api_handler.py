@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from src.billing.api import billing_router
 from src.category.api import category_router
 from src.conversation.api import conversation_router
 from src.user.api import user_router
@@ -19,3 +20,6 @@ api_router.include_router(
 api_router.include_router(
     conversation_router, include_in_schema=True, tags=["Conversation APIs"]
 )
+
+# Billing
+api_router.include_router(billing_router, include_in_schema=True, tags=["Billing APIs"])

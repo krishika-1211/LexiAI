@@ -3,9 +3,10 @@ from enum import Enum
 
 import jwt
 from passlib.hash import pbkdf2_sha256
-from sqlalchemy import Boolean, Column, String
+from sqlalchemy import Boolean, Column, Integer, String
 from sqlalchemy.orm import relationship
 
+from src.billing.models import Invoice, Payment, Subscription
 from src.config import Config
 from src.conversation.models import ConversationSession
 from utils.db.base import ModelBase
@@ -27,12 +28,20 @@ class User(ModelBase):
     email_verified = Column(Boolean, default=False)
     password = Column(String, nullable=False)
     role = Column(String, default=UserRoles.USER.value)
+    customer_id = Column(String, unique=True)
     is_active = Column(Boolean, default=True)
     is_banned = Column(Boolean, default=False)
+    used_conversations = Column(Integer)
 
     session = relationship(
         ConversationSession, back_populates="user", cascade="all, delete"
     )
+
+    subscription = relationship(
+        Subscription, back_populates="customer", cascade="all, delete"
+    )
+    payment = relationship(Payment, back_populates="customer", cascade="all, delete")
+    invoice = relationship(Invoice, back_populates="customer", cascade="all, delete")
 
     def __repr__(self):
         return f"""
