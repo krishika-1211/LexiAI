@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, WebSocket, status
 
 from src.conversation.crud import conversation_crud, history_crud
 from src.conversation.schemas import HistoryResponse
-from src.conversation.utils import websocket_conversation
+from src.conversation.utils.communication import websocket_conversation
 from src.user.utils.deps import authenticated_user
 
 conversation_router = APIRouter()
@@ -18,6 +18,9 @@ async def conversation(
     duration: int,
 ):
     user, db = authenticated
+
+    if conversation_crud.check_conversation_permission(db, user.id) == 0:
+        return {"message": "You have reached the maximum number of conversations."}
 
     await websocket_conversation(websocket, db, user, topic_id, duration)
 

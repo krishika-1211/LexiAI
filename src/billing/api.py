@@ -22,6 +22,9 @@ def create_product(request: PlanRequest, authenticated: authenticated_user):
 @billing_router.post("/checkout-session", status_code=status.HTTP_200_OK)
 def checkout_session(request: SubscriptionRequest, authenticated: authenticated_user):
     user, db = authenticated
+
+    user.customer_id = stripe_service.create_customer(db, user)
+
     session = stripe_service.create_checkout_session(
         db=db, obj_in=request, customer_id=user.customer_id
     )

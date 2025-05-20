@@ -33,7 +33,7 @@ class Conversation(ModelBase):
 
 class Report(ModelBase):
     score = Column(Float, default=0)
-    feedback = Column(String)
+    feedback = Column(String, nullable=True)
     words_spoken = Column(Integer, default=0)
 
     user_id = Column(String, ForeignKey("user.id", ondelete="CASCADE"))

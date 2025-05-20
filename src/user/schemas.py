@@ -32,7 +32,7 @@ class UserResponse(UserUpdate):
 
 class UserBase(BaseSchema, UserResponse):
     id: Optional[str]
-    customer_id: Optional[str]
+    customer_id: Optional[str] = None
     updated_by: Optional[str]
     password: str
 

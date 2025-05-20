@@ -23,12 +23,12 @@ class Config:
     DEPLOYMENT_ENV: str = os.environ["DEPLOYMENT_ENV"]
     SERVER_PORT: Optional[int] = os.environ["SERVER_PORT"]
     SERVER_HOST: Optional[str or AnyHttpUrl] = os.environ["SERVER_HOST"]
-    # TERMS_OF_SERVICE: str = os.environ["TERMS_OF_SERVICE"]
 
     if DEPLOYMENT_ENV == "DEV":
         BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = [
             "http://localhost:3000",
             "http://localhost:8080",
+            "*",
         ]
     else:
         BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
@@ -75,3 +75,13 @@ class Config:
     SMTP_USER: str = os.environ["SMTP_USER"]
     SMTP_PASS: str = os.environ["SMTP_PASS"]
     FROM_MAIL: str = os.environ["FROM_MAIL"]
+
+    # Stripe Config
+    STRIPE_API_KEY: str = os.environ["STRIPE_SECRET_KEY"]
+    STRIPE_SUCCESS_URL: str = os.environ["STRIPE_SUCCESS_URL"]
+    STRIPE_CANCEL_URL: str = os.environ["STRIPE_CANCEL_URL"]
+    STRIPE_WEBHOOK_SECRET: str = os.environ["STRIPE_WEBHOOK_SECRET"]
+
+    # Conversation Config
+    GROQ_KEY: str = os.environ["GROQ_KEY"]
+    TOGETHER_AI_API_KEY: str = os.environ["TOGETHER_AI_API_KEY"]

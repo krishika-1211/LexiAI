@@ -28,10 +28,10 @@ class User(ModelBase):
     email_verified = Column(Boolean, default=False)
     password = Column(String, nullable=False)
     role = Column(String, default=UserRoles.USER.value)
-    customer_id = Column(String, unique=True)
+    customer_id = Column(String, unique=True, nullable=True)
     is_active = Column(Boolean, default=True)
     is_banned = Column(Boolean, default=False)
-    used_conversations = Column(Integer)
+    used_conversations = Column(Integer, default=0)
 
     session = relationship(
         ConversationSession, back_populates="user", cascade="all, delete"
