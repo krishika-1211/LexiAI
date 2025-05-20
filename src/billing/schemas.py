@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -8,8 +7,8 @@ class PlanRequest(BaseModel):
     name: str
     description: str
     amount: int
-    currency: Optional[str]
-    interval: Optional[str]
+    currency: str = "usd"
+    interval: str = "month"
     allowed_conversations: int
 
 

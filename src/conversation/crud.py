@@ -12,11 +12,9 @@ from utils.crud.base import CRUDBase
 
 
 class ConversationSessionCRUD:
-    def __init__(self):
-        pass
-
+    @staticmethod
     def create(
-        self, db: Session, user_id: str, created_by: str, topic_id: str
+        db: Session, user_id: str, created_by: str, topic_id: str
     ) -> ConversationSession:
         session = ConversationSession(
             user_id=user_id,
@@ -34,11 +32,9 @@ conversation_session_crud = ConversationSessionCRUD()
 
 
 class ConversationCrud:
-    def __init__(self):
-        pass
-
+    @staticmethod
     def user_conversation(
-        self, db: Session, session_id: str, content: str, created_by: str
+        db: Session, session_id: str, content: str, created_by: str
     ) -> Conversation:
         conversation = Conversation(
             role="user",
@@ -52,8 +48,9 @@ class ConversationCrud:
         db.refresh(conversation)
         return conversation
 
+    @staticmethod
     def ai_conversation(
-        self, db: Session, session_id: str, content: str, created_by: str
+        db: Session, session_id: str, content: str, created_by: str
     ) -> Conversation:
         conversation = Conversation(
             role="ai",
@@ -67,7 +64,8 @@ class ConversationCrud:
         db.refresh(conversation)
         return conversation
 
-    def check_conversation_permission(self, db: Session, user_id: str):
+    @staticmethod
+    def check_conversation_permission(db: Session, user_id: str):
         subscription = (
             db.query(Subscription).filter(Subscription.user_id == user_id).first()
         )
@@ -102,10 +100,7 @@ class ConversationCrud:
         db.commit()
         db.refresh(user)
 
-        return {
-            "message": "Permission granted",
-            "remaining_conversations": allowed_conversations - user.used_conversations,
-        }
+        return allowed_conversations - user.used_conversations
 
 
 conversation_crud = ConversationCrud()

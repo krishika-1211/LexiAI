@@ -35,7 +35,10 @@ def signup(user_req: UserRequest, db: get_db):
     user = user_crud.create(
         db,
         obj_in=UserBase(
-            id=user_id, created_by=user_id, updated_by=user_id, **user_req.model_dump()
+            id=user_id,
+            created_by=user_id,
+            updated_by=user_id,
+            **user_req.model_dump(),
         ),
     )
     return Token(user=user, token=user.create_token())

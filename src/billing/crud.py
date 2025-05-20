@@ -1,37 +1,32 @@
-import os
 from datetime import datetime
 
 import stripe
 import stripe.error
-from dotenv import load_dotenv
 from fastapi import HTTPException, status
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 
 from src.billing.models import Invoice, Payment, Plan, Subscription
 from src.billing.schemas import PlanRequest
+from src.config import Config
 from src.user.models import User
 
-load_dotenv()
-
-
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-success_url = os.getenv("STRIPE_SUCCESS_URL")
-cancel_url = os.getenv("STRIPE_CANCEL_URL")
-webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+stripe.api_key = Config.STRIPE_API_KEY
 
 
 class StripeService:
-    def __init__(self):
-        pass
+    @staticmethod
+    def create_customer(db: Session, user: User):
+        if not user.customer_id:
+            customer = stripe.Customer.create(email=user.email)
+            user.customer_id = customer.id
+            db.commit()
+            db.refresh(user)
 
-    def create_customer(self, email: str):
-        customer = stripe.Customer.create(email=email)
-        return customer
+        return user.customer_id
 
-    def create_product_and_price(
-        self, db: Session, obj_in: PlanRequest, created_by: str
-    ):
+    @staticmethod
+    def create_product_and_price(db: Session, obj_in: PlanRequest, created_by: str):
         obj_in_data = jsonable_encoder(obj_in)
         product = stripe.Product.create(
             name=obj_in_data["name"], description=obj_in_data["description"]
@@ -60,7 +55,8 @@ class StripeService:
         db.refresh(db_obj)
         return db_obj
 
-    def create_checkout_session(self, db: Session, obj_in: str, customer_id: str):
+    @staticmethod
+    def create_checkout_session(db: Session, obj_in: str, customer_id: str):
         obj_in_data = jsonable_encoder(obj_in)
         plan = db.query(Plan).filter(Plan.name == obj_in_data["plan_name"]).first()
         if not plan:
@@ -68,11 +64,9 @@ class StripeService:
                 status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found"
             )
 
-        user = db.query(User).filter(User.customer_id == customer_id).first()
-
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
-            customer_email=user.email,
+            customer=customer_id,
             line_items=[
                 {
                     "price": plan.price_id,
@@ -80,14 +74,17 @@ class StripeService:
                 }
             ],
             mode="subscription",
-            success_url=success_url,
-            cancel_url=cancel_url,
+            success_url=Config.STRIPE_SUCCESS_URL,
+            cancel_url=Config.STRIPE_CANCEL_URL,
         )
         return session
 
-    def verify_webhook_signature(self, payload: bytes, sig_header: str):
+    @staticmethod
+    def verify_webhook_signature(payload: bytes, sig_header: str):
         try:
-            event = stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
+            event = stripe.Webhook.construct_event(
+                payload, sig_header, Config.STRIPE_WEBHOOK_SECRET
+            )
             return event
 
         except ValueError:
@@ -100,7 +97,8 @@ class StripeService:
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid signature"
             )
 
-    def add_subscription(self, db: Session, subscription_id: str):
+    @staticmethod
+    def add_subscription(db: Session, subscription_id: str):
         subscription = stripe.Subscription.retrieve(subscription_id)
         price_id = subscription["items"]["data"][0]["price"]["id"]
         current_period_end = datetime.fromtimestamp(subscription.current_period_end)
@@ -131,7 +129,8 @@ class StripeService:
         db.refresh(db_obj)
         return db_obj
 
-    def add_invoice(self, db: Session, invoice: dict):
+    @staticmethod
+    def add_invoice(db: Session, invoice: dict):
         invoice_id = invoice["id"]
         subscription_id = invoice["subscription"]
         amount_due = invoice["amount_due"]
@@ -146,6 +145,10 @@ class StripeService:
         )
 
         user = db.query(User).filter(User.customer_id == customer).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
         created_by = user.email
 
         db_obj = Invoice(
@@ -163,13 +166,8 @@ class StripeService:
         db.refresh(db_obj)
         return db_obj
 
-    def add_payment(self, db: Session, session: dict, subscription_id):
-        subscription = (
-            db.query(Subscription)
-            .filter(Subscription.subscription_id == subscription_id)
-            .first()
-        )
-
+    @staticmethod
+    def add_payment(db: Session, session: dict, subscription_id):
         invoice_id = session["invoice"]
         invoice = stripe.Invoice.retrieve(invoice_id)
         payment_id = invoice["payment_intent"]
