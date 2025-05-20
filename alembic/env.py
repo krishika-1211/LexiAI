@@ -10,6 +10,7 @@ from utils.db.base import ModelBase
 from src.user.models import *
 from src.category.models import *
 from src.conversation.models import *
+from src.billing.models import *
 
 
 # this is the Alembic Config object, which provides

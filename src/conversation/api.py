@@ -38,3 +38,15 @@ def get_history(authenticated: authenticated_user):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
+
+
+@conversation_router.post("/start-conversation", status_code=status.HTTP_200_OK)
+def start_conversation(authenticated: authenticated_user):
+    user, db = authenticated
+
+    permission = conversation_crud.check_conversation_permission(db, user.id)
+
+    return {
+        "message": permission["message"],
+        "remaining conversations": permission["remaining_conversations"],
+    }

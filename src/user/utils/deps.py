@@ -1,7 +1,14 @@
 from typing import Annotated, Tuple
 
 import jwt
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import (
+    Depends,
+    Header,
+    HTTPException,
+    WebSocket,
+    WebSocketDisconnect,
+    status,
+)
 from sqlalchemy.orm import Session
 
 from src.config import Config
@@ -60,6 +67,32 @@ def _authenticated_user(
 
 is_authorized = Annotated[bool, Depends(_authenticated)]
 authenticated_user = Annotated[Tuple[User, Session], Depends(_authenticated_user)]
+
+
+async def _websocket_authenticated(db: get_db, websocket: WebSocket):
+    token = websocket.headers.get("Authorization")
+    if not token:
+        await websocket.close(code=403)
+        raise WebSocketDisconnect(code=403)
+
+    payload = jwt.decode(
+        token,
+        Config.JWT_SECRET_KEY,
+        algorithms=[Config.JWT_ALGORITHM],
+    )
+
+    user_id = payload["id"]
+    if not user_id:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid token")
+
+    user = user_crud.get(db, id=user_id)
+
+    return user, db
+
+
+websocket_authenticated = Annotated[
+    Tuple[User, Session], Depends(_websocket_authenticated)
+]
 
 
 def _is_authorized_for(roles: list):

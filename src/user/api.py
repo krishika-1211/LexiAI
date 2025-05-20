@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, status
 from fastapi.requests import Request
 from fastapi.responses import RedirectResponse
 
+from src.billing.crud import stripe_service
 from src.user.crud import user_crud
 from src.user.schemas import (
     ForgotRequest,
@@ -32,10 +33,12 @@ def signup(user_req: UserRequest, db: get_db):
             detail="User with this email already exists",
         )
     user_id = str(uuid.uuid4())
+    customer = stripe_service.create_customer(user_req.email)
     user = user_crud.create(
         db,
         obj_in=UserBase(
             id=user_id,
+            customer_id=customer.id,
             created_by=user_id,
             updated_by=user_id,
             **user_req.model_dump(),
@@ -73,7 +76,7 @@ def auth_callback(provider: auth_provider, code: str, db: get_db, request: Reque
     return RedirectResponse(url=redirect_url_with_token)
 
 
-@user_router.post("/forgate-password")
+@user_router.post("/forget-password")
 def forgot_password(request: ForgotRequest, db: get_db):
     user = user_crud.get_by_email(db, request.email)
     if not user:

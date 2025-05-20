@@ -22,6 +22,7 @@ engine = pyttsx3.init()
 
 def speak(response):
     if response:
+        print("Assistant:", response)
         print("AI:", response)
         engine.say(response)
         engine.runAndWait()
